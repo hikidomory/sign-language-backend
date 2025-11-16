@@ -13,7 +13,12 @@ app = FastAPI()
 # CORS 허용 (localhost 테스트용)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 필요 시 ["http://localhost:5500", "http://127.0.0.1:5500"] 로 제한 가능
+allow_origins=[
+        "http://localhost:5173",
+        "https://sign-language-project-teal.vercel.app",  # 👈 방금 복사한 주소 (뒤에 슬래시 / 는 빼주세요)
+        "https://sign-language-project.vercel.app",       # (선택) 혹시 다른 주소도 있다면 추가
+        "*" # (이게 있으면 사실 다 되긴 하지만, 보안상 위 주소들을 명시하는 게 좋습니다)
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -33,6 +38,7 @@ for key in MODEL_KEYS:
     except Exception as e:
         print(f"[ERROR] Failed to load {key}: {e}")
 
+
 # --------- 요청 형식 ---------
 class PredictIn(BaseModel):
     model_key: str
@@ -44,7 +50,9 @@ class PredictIn(BaseModel):
 def predict(inp: PredictIn):
     try:
         if inp.model_key not in models:
-            raise HTTPException(status_code=400, detail=f"Invalid model key: {inp.model_key}")
+            raise HTTPException(
+                status_code=400, detail=f"Invalid model key: {inp.model_key}"
+            )
 
         model = models[inp.model_key]
         scaler = scalers[inp.model_key]
@@ -52,7 +60,10 @@ def predict(inp: PredictIn):
 
         # 입력 벡터 확인
         x = np.asarray(inp.features, dtype=np.float32)[None, :]
-        print(f"[DEBUG] Received {len(inp.features)} features for {inp.model_key}", flush=True)
+        print(
+            f"[DEBUG] Received {len(inp.features)} features for {inp.model_key}",
+            flush=True,
+        )
 
         # 스케일러 적용
         try:
@@ -74,7 +85,9 @@ def predict(inp: PredictIn):
         label = encoder.inverse_transform([idx])[0]
         confidence = float(y[idx])
 
-        print(f"[INFO] Predict → {inp.model_key}: {label} ({confidence:.3f})", flush=True)
+        print(
+            f"[INFO] Predict → {inp.model_key}: {label} ({confidence:.3f})", flush=True
+        )
         return {"label": label, "confidence": confidence}
 
     except Exception as e:
