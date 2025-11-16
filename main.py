@@ -13,8 +13,8 @@ app = FastAPI()
 # CORS 허용 (localhost 테스트용)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 🌟 핵심: 모든 주소에서의 접속을 허용함
-    allow_credentials=True,
+    allow_origins=["*"],      # 모든 주소 허용
+    allow_credentials=False,  # 👈 🌟 여기를 True에서 False로 변경! (핵심)
     allow_methods=["*"],
     allow_headers=["*"],
 )
