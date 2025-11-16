@@ -13,12 +13,7 @@ app = FastAPI()
 # CORS 허용 (localhost 테스트용)
 app.add_middleware(
     CORSMiddleware,
-allow_origins=[
-        "http://localhost:5173",
-        "https://sign-language-project-teal.vercel.app",  # 👈 방금 복사한 주소 (뒤에 슬래시 / 는 빼주세요)
-        "https://sign-language-project.vercel.app",       # (선택) 혹시 다른 주소도 있다면 추가
-        "*" # (이게 있으면 사실 다 되긴 하지만, 보안상 위 주소들을 명시하는 게 좋습니다)
-    ],
+    allow_origins=["*"],  # 🌟 핵심: 모든 주소에서의 접속을 허용함
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
