@@ -32,29 +32,10 @@ models = {}
 scalers = {}
 encoders = {}
 
-# @app.on_event("startup")
-# def load_models():
-#     print("지금은 메모리 테스트 중이라 모델을 안 불러옵니다!")
-#     # 모델 로딩 실패해도 서버가 꺼지지 않게 방어
-#     for key in MODEL_KEYS:
-#         try:
-#             # h5 파일 경로 확인
-#             path = f"model_{key}.h5"
-#             if os.path.exists(path):
-#                 models[key] = load_model(path)
-#                 scalers[key] = joblib.load(f"scaler_{key}.pkl")
-#                 encoders[key] = joblib.load(f"label_encoder_{key}.pkl")
-#                 print(f"[INFO] Loaded {key} successfully.")
-#             else:
-#                 print(f"[WARNING] Model file not found: {path}")
-#         except Exception as e:
-#             print(f"[ERROR] Failed to load {key}: {e}")
 @app.on_event("startup")
 def load_models():
-    print("🚧 [TEST MODE] 지금은 메모리 테스트 중이라 모델을 불러오지 않습니다! 🚧")
-    
-    # 아래 코드들을 따옴표 3개(""")로 감싸서 실행 안 되게 만듭니다.
-    """
+    print("지금은 메모리 테스트 중이라 모델을 안 불러옵니다!")
+    # 모델 로딩 실패해도 서버가 꺼지지 않게 방어
     for key in MODEL_KEYS:
         try:
             # h5 파일 경로 확인
@@ -68,8 +49,7 @@ def load_models():
                 print(f"[WARNING] Model file not found: {path}")
         except Exception as e:
             print(f"[ERROR] Failed to load {key}: {e}")
-    """
-    pass # 아무것도 안 하고 넘어가라는 뜻
+
 
 class PredictIn(BaseModel):
     model_key: str
