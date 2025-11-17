@@ -5,6 +5,7 @@ import numpy as np
 import joblib
 from tensorflow.keras.models import load_model
 import os
+import gc
 
 # --------- 설정 ---------
 MODEL_KEYS = ["hangul", "digit"]
@@ -62,24 +63,40 @@ def home():
 @app.post("/predict")
 def predict(inp: PredictIn):
     try:
+        # 1. 메모리 청소부터 하고 시작
+        gc.collect()
+        
         if inp.model_key not in models:
-            # 모델이 없으면 에러 대신 가짜 응답을 줘서 연결 테스트 (디버깅용)
             return {"label": "준비중", "confidence": 0.0}
 
         model = models[inp.model_key]
         scaler = scalers[inp.model_key]
         encoder = encoders[inp.model_key]
 
-        x = np.asarray(inp.features, dtype=np.float32)[None, :]
+        # 2. 데이터 변환 (최대한 가볍게)
+        # float32로 변환하여 메모리 절약
+        features_arr = np.asarray(inp.features, dtype=np.float32)
+        
+        # 2차원 배열 변환 (1, N)
+        x = features_arr.reshape(1, -1) 
+        
         x = scaler.transform(x)
-        y = model.predict(x, verbose=0)[0]
+
+        # 3. 예측 실행 (배치 사이즈 1로 제한)
+        # verbose=0으로 설정하여 로그 출력 메모리 아낌
+        y = model.predict(x, batch_size=1, verbose=0)[0]
         
         idx = int(np.argmax(y))
         label = encoder.inverse_transform([idx])[0]
         confidence = float(y[idx])
 
+        # 4. 사용한 메모리 즉시 반납
+        del x
+        del features_arr
+        gc.collect()
+
         return {"label": label, "confidence": confidence}
 
     except Exception as e:
-        # 에러가 나도 500 대신 200 OK로 에러 메시지를 보냄 (CORS 회피)
+        print(f"❌ 예측 중 에러 발생: {e}")
         return {"label": "Error", "confidence": 0.0, "detail": str(e)}
