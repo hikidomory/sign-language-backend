@@ -1,4 +1,3 @@
-# main.py
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -6,7 +5,7 @@ import numpy as np
 import joblib
 import os
 import gc
-import tensorflow as tf # TFLite Interpreter 사용
+import tensorflow as tf 
 
 # --------- 설정 ---------
 MODEL_KEYS = ["hangul", "digit"]
@@ -28,8 +27,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ✅ [추가됨] 루트 경로 접속 시 404 방지용 (Render 헬스 체크 통과용)
+@app.get("/")
+def home():
+    return {"message": "Smart Sign Language Server (TFLite) is Running!"}
+
+@app.head("/")
+def keep_alive():
+    return {"message": "I am alive"}
+
 # --------- 모델 로드 (TFLite 버전) ---------
-interpreters = {} # 모델 대신 인터프리터 저장
+interpreters = {}
 input_details = {}
 output_details = {}
 scalers = {}
@@ -41,28 +49,23 @@ def load_models():
     
     for key in MODEL_KEYS:
         try:
-            # .tflite 파일 경로
             path = f"model_{key}.tflite"
             
             if os.path.exists(path):
-                # 1. 인터프리터 로드 (Keras model.load_model보다 훨씬 가벼움)
                 interpreter = tf.lite.Interpreter(model_path=path)
                 interpreter.allocate_tensors()
                 
                 interpreters[key] = interpreter
-                
-                # 입출력 정보 저장 (나중에 predict할 때 필요)
                 input_details[key] = interpreter.get_input_details()
                 output_details[key] = interpreter.get_output_details()
                 
-                # 스케일러/인코더 로드
                 scalers[key] = joblib.load(f"scaler_{key}.pkl")
                 encoders[key] = joblib.load(f"label_encoder_{key}.pkl")
                 
                 print(f"   ✅ Loaded {key} (TFLite) successfully.")
                 gc.collect()
             else:
-                print(f"   ⚠️ TFLite file not found: {path} (변환했나요?)")
+                print(f"   ⚠️ TFLite file not found: {path}")
         except Exception as e:
             print(f"   ❌ Failed to load {key}: {e}")
 
@@ -82,16 +85,13 @@ def predict(inp: PredictIn):
         in_det = input_details[inp.model_key]
         out_det = output_details[inp.model_key]
 
-        # 1. 데이터 전처리
         features_arr = np.array(inp.features, dtype=np.float32).reshape(1, -1)
         x = scaler.transform(features_arr)
-        x = x.astype(np.float32) # TFLite는 타입에 민감함
+        x = x.astype(np.float32)
 
-        # 2. 추론 실행 (Invoke)
         interpreter.set_tensor(in_det[0]['index'], x)
-        interpreter.invoke() # 실행!
+        interpreter.invoke()
         
-        # 3. 결과 가져오기
         y = interpreter.get_tensor(out_det[0]['index'])[0]
         
         idx = int(np.argmax(y))
